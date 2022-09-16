@@ -30,3 +30,18 @@ df_train["file_path"] = df_train["image_id"].apply(lambda x: "../input/mayo-clin
 df_val["file_path"]  = df_val["image_id"].apply(lambda x: "../input/mayo-clinic-strip-ai/test/" + x + ".tif")
 
 df_train["target"] = df_train["label"].apply(lambda x : 1 if x=="CE" else 0)
+
+%%time
+def preprocess(image_path):
+    slide=OpenSlide(image_path)
+    region= (1000,1000)    
+    size  = (5000, 5000)
+    image = slide.read_region(region, 0, size)
+    image = tf.image.resize(image, (image_size, image_size))
+    image = np.array(image)    
+    return image
+
+x_train=[]
+for i in tqdm(df_train['file_path']):
+    x1=preprocess(i)
+    x_train.append(x1)
