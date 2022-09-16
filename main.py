@@ -45,3 +45,8 @@ x_train=[]
 for i in tqdm(df_train['file_path']):
     x1=preprocess(i)
     x_train.append(x1)
+
+x_train=np.array(x_train)
+y_train=df_train['target']
+
+x_train,x_test,y_train,y_test=train_test_split(x_train,y_train,test_size=0.1)
