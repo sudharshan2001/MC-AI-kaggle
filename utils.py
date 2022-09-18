@@ -46,3 +46,36 @@ class PatchEncoder(L.Layer):
         positions = tf.range(start = 0, limit = self.num_patches, delta = 1)
         encoded = self.projection(patch) + self.position_embedding(positions)
         return encoded
+
+def vision_transformer():
+    inputs = L.Input(shape = (image_size, image_size, 4))
+    
+    patches = Patches(patch_size)(inputs)
+    
+    encoded_patches = PatchEncoder(num_patches, projection_dim)(patches)
+
+    for _ in range(transformer_layers):
+        
+        x1 = L.LayerNormalization(epsilon = 1e-6)(encoded_patches)
+        
+        attention_output = L.MultiHeadAttention(num_heads = num_heads, key_dim = projection_dim, dropout = 0.1)(x1, x1)
+        
+        x2 = L.Add()([attention_output, encoded_patches])
+        
+        x3 = L.LayerNormalization(epsilon = 1e-6)(x2)
+        
+        x3 = mlp(x3, hidden_units = transformer_units, dropout_rate = 0.1)
+        
+        encoded_patches = L.Add()([x3, x2])
+        
+    representation = L.LayerNormalization(epsilon = 1e-6)(encoded_patches)
+    representation = L.Flatten()(representation)
+    representation = L.Dropout(0.5)(representation)
+
+    features = mlp(representation, hidden_units = mlp_head_units, dropout_rate = 0.)
+    
+    logits = L.Dense(n_classes,activation="softmax")(features)
+    
+    model = tf.keras.Model(inputs = inputs, outputs = logits)
+    
+    return model
