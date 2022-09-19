@@ -101,3 +101,18 @@ initial_learning_rate = learning_rate
 lr_decayed_fn = tf.keras.experimental.CosineDecay(initial_learning_rate, decay_steps)
 
 lr_scheduler = tf.keras.callbacks.LearningRateScheduler(lr_decayed_fn)
+
+optimizer = tf.keras.optimizers.Adam(learning_rate = learning_rate)
+
+reduce_lr=ReduceLROnPlateau(monitor='val_loss',factor=0.1,patience=2, min_delta=1e-4, verbose=1, min_lr=1e-7)
+
+callbacks = [earlystopping, lr_scheduler, checkpointer, reduce_lr]
+
+model.fit(
+          x = train_gen,
+          steps_per_epoch = STEP_SIZE_TRAIN,
+          validation_data = valid_gen,
+          validation_steps = STEP_SIZE_VALID,
+          epochs = num_epochs,
+          callbacks = callbacks
+         )
