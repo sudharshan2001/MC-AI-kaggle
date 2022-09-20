@@ -56,7 +56,7 @@ class PatchEncoder(L.Layer):
         return encoded
 
 def vision_transformer():
-    inputs = L.Input(shape = (image_size, image_size, 4))
+    inputs = L.Input(shape = (image_size, image_size, 3))
     
     patches = Patches(patch_size)(inputs)
     
