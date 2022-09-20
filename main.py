@@ -4,13 +4,11 @@ import tensorflow as tf
 import tensorflow.keras.layers as L
 import tensorflow_addons as tfa
 import glob, random, os, warnings
-import matplotlib.pyplot as plt
 from tensorflow.keras.callbacks import ReduceLROnPlateau
+from utils import vision_transformer
 from tqdm import tqdm
 import openslide
 from openslide import OpenSlide
-import glob
-import os
 from sklearn.model_selection import train_test_split
 
 def seed_everything(seed = 0):
@@ -22,6 +20,13 @@ def seed_everything(seed = 0):
 seed_everything()
 warnings.filterwarnings('ignore')
 
+learning_rate = 0.0001
+weight_decay = 0.0001
+num_epochs = 50
+
+image_size = 224
+batch_size = 12
+n_classes = 1
 
 df_train = pd.read_csv('../input/mayo-clinic-strip-ai/train.csv')
 df_val  = pd.read_csv('../input/mayo-clinic-strip-ai/test.csv')
@@ -68,7 +73,7 @@ train_gen = train_datagen.flow_from_dataframe(dataframe = df_train,
                                         seed = 1,
                                         color_mode = 'rgb',
                                         shuffle = True,
-                                        class_mode = 'categorical',
+                                        class_mode = 'binary',
                                         target_size = (image_size, image_size))
 
 valid_datagen = tf.keras.preprocessing.image.ImageDataGenerator(
@@ -89,24 +94,42 @@ valid_gen = valid_datagen.flow_from_dataframe(dataframe = df_val,
                                         seed = 1,
                                         color_mode = 'rgb',
                                         shuffle = False,
-                                        class_mode = 'categorical',
+                                        class_mode = 'binary',
                                         target_size = (image_size, image_size))
 
 
+STEP_SIZE_TRAIN = train_gen.n// train_gen.batch_size
+STEP_SIZE_VALID = valid_gen.n// valid_gen.batch_size
 
 decay_steps = train_gen.n // train_gen.batch_size/ 
 
-initial_learning_rate = learning_rate
-
-lr_decayed_fn = tf.keras.experimental.CosineDecay(initial_learning_rate, decay_steps)
+lr_decayed_fn = tf.keras.experimental.CosineDecay(learning_rate, decay_steps)
 
 lr_scheduler = tf.keras.callbacks.LearningRateScheduler(lr_decayed_fn)
 
-optimizer = tf.keras.optimizers.Adam(learning_rate = learning_rate)
+earlystopping = tf.keras.callbacks.EarlyStopping(monitor = 'val_loss',
+                                                 min_delta = 1e-4,
+                                                 patience = 5,
+                                                 restore_best_weights = True,
+                                                 verbose = 1)
+
+checkpointer = tf.keras.callbacks.ModelCheckpoint(filepath = './model1.hdf5',
+                                                  monitor = 'val_loss', 
+                                                  verbose = 1, 
+                                                  save_best_only = True,
+                                                  save_weights_only = True,
+                                                 )
 
 reduce_lr=ReduceLROnPlateau(monitor='val_loss',factor=0.1,patience=2, min_delta=1e-4, verbose=1, min_lr=1e-7)
 
 callbacks = [earlystopping, lr_scheduler, checkpointer, reduce_lr]
+
+model = vision_transformer()
+model.compile(
+    optimizer='adam',
+    loss='binary_crossentropy',
+    metrics='binary_accuracy'
+)
 
 model.fit(
           x = train_gen,
@@ -116,3 +139,4 @@ model.fit(
           epochs = num_epochs,
           callbacks = callbacks
          )
+
