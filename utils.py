@@ -4,6 +4,14 @@ import tensorflow.keras.layers as L
 import tensorflow_addons as tfa
 
 
+learning_rate = 0.0001
+weight_decay = 0.0001
+num_epochs = 50
+
+image_size = 224
+batch_size = 12
+n_classes = 1
+
 def mlp(x, hidden_units, dropout_rate):
     for units in hidden_units:
         x = L.Dense(units, activation = tf.nn.gelu)(x)
@@ -72,9 +80,9 @@ def vision_transformer():
     representation = L.Flatten()(representation)
     representation = L.Dropout(0.5)(representation)
 
-    features = mlp(representation, hidden_units = mlp_head_units, dropout_rate = 0.)
+    features = mlp(representation, hidden_units = mlp_head_units, dropout_rate = 0.5)
     
-    logits = L.Dense(n_classes,activation="softmax")(features)
+    logits = L.Dense(1,activation="softmax")(features)
     
     model = tf.keras.Model(inputs = inputs, outputs = logits)
     
